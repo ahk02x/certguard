@@ -73,7 +73,9 @@ func readTLV(b []byte) (tlv, error) {
 		}
 		i += nbytes
 	}
-	if i+length > len(b) {
+	// length < 0 catches a 4-byte length that overflows int on 32-bit
+	// platforms; comparing against len(b)-i avoids overflow in i+length.
+	if length < 0 || length > len(b)-i {
 		return tlv{}, errTruncated
 	}
 	return tlv{

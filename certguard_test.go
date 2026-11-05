@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func makeCert(t *testing.T, nSANs int) []byte {
+func makeCert(t testing.TB, nSANs int) []byte {
 	t.Helper()
 	_, priv, _ := ed25519.GenerateKey(rand.Reader)
 	uris := make([]*url.URL, nSANs)
@@ -32,7 +32,7 @@ func makeCert(t *testing.T, nSANs int) []byte {
 	return der
 }
 
-func makeEmptyURICert(t *testing.T, nSANs int) []byte {
+func makeEmptyURICert(t testing.TB, nSANs int) []byte {
 	t.Helper()
 	_, priv, _ := ed25519.GenerateKey(rand.Reader)
 	uris := make([]*url.URL, nSANs)

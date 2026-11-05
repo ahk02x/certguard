@@ -64,15 +64,15 @@ func Inspect(der []byte, limits Limits) error {
 	if len(der) > l.MaxCertBytes {
 		return fmt.Errorf("%w: %d bytes > %d", ErrTooLarge, len(der), l.MaxCertBytes)
 	}
-	n, ok := scanSANCount(der)
-	if !ok {
-		// A certificate we cannot even scan structurally is not our problem to
-		// diagnose; let the stdlib produce the real parse error downstream.
-		return nil
-	}
+	n, _ := scanSANCount(der)
+	// Check the count even when the walk did not finish cleanly: a SAN list of
+	// N well-formed names followed by one malformed element still makes the
+	// stdlib allocate N entries before it fails, so a partial count is real.
 	if n > l.MaxSANEntries {
 		return fmt.Errorf("%w: %d > %d", ErrTooManySANs, n, l.MaxSANEntries)
 	}
+	// Otherwise a certificate we cannot scan structurally is not our problem to
+	// diagnose; let the stdlib produce the real parse error downstream.
 	return nil
 }
 

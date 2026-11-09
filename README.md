@@ -7,6 +7,10 @@ certguard says no.
 I wrote it after finding a memory bug in Go's certificate parser:
 [golang/go#82858](https://github.com/golang/go/issues/82858).
 
+It only protects a server if it runs before Go parses the certificate. Some
+setups allow that and some don't, including TLS 1.3 servers that need client
+certificates. [Where it must sit](#where-it-must-sit) says which.
+
 ## Why
 
 A certificate lists the names it's valid for, called SubjectAltNames (SANs).

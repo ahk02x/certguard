@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-// 1. A truncated/garbage DER must never panic and must not falsely "pass" as a
-//    tiny cert when it is actually unparseable — Inspect should return nil
-//    (defer to stdlib) OR an error, but NEVER panic.
+//  1. A truncated/garbage DER must never panic and must not falsely "pass" as a
+//     tiny cert when it is actually unparseable. Inspect should return nil
+//     (defer to stdlib) OR an error, but NEVER panic.
 func TestNoPanicOnGarbage(t *testing.T) {
 	inputs := [][]byte{
 		nil, {}, {0x30}, {0x30, 0x80}, {0x30, 0x84, 0xff, 0xff, 0xff, 0xff},
@@ -39,12 +39,12 @@ func TestIndefiniteLengthRejectedCheap(t *testing.T) {
 	}
 }
 
-// 3. THE KEY BYPASS TEST: a cert whose SAN GeneralNames uses CONSTRUCTED
-//    encoding or nesting such that countTLVElements under-counts. If an attacker
-//    can pack many names but have the top-level walker see few, they bypass
-//    MaxSANEntries. We approximate by checking the real stdlib-built hostile
-//    cert is counted correctly (done in main test) and that a manually nested
-//    blob does not undercount wildly.
+//  3. THE KEY BYPASS TEST: a cert whose SAN GeneralNames uses CONSTRUCTED
+//     encoding or nesting such that countTLVElements under-counts. If an attacker
+//     can pack many names but have the top-level walker see few, they bypass
+//     MaxSANEntries. We approximate by checking the real stdlib-built hostile
+//     cert is counted correctly (done in main test) and that a manually nested
+//     blob does not undercount wildly.
 func TestNestedDoesNotUndercount(t *testing.T) {
 	// Build a fake GeneralNames body: 200 context-tag-6 (URI) empty elements.
 	var names []byte

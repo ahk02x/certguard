@@ -1,16 +1,18 @@
-// Package certguard hardens TLS servers against malicious client certificates.
+// Package certguard checks a TLS client certificate before Go's parser reads
+// it, and says no if the certificate is too big or lists too many names.
 //
-// The Go standard library parses a peer's certificate chain before any
-// application callback (VerifyPeerCertificate / VerifyConnection) runs. A
-// hostile client can exploit that: a certificate packed with thousands of tiny
-// SubjectAltName entries costs ~2 bytes each on the wire but far more to hold in
-// memory once parsed, giving a large pre-authentication amplification. See the
-// Go class of "parsing allocates too much" DoS fixes.
+// Go's crypto/tls parses a client's certificate before VerifyPeerCertificate
+// or VerifyConnection runs. x509.ParseCertificate builds an object for every
+// SubjectAltName entry, with no limit on how many there are. An empty URI name
+// is 2 bytes in the certificate, but a 260 KB certificate with 130,000 of them
+// makes the parser allocate about 24 MB. See
+// https://github.com/golang/go/issues/82858.
 //
-// certguard screens the raw DER *before* full parsing, using golang.org/x/crypto
-// style lightweight scanning via encoding/asn1 only where cheap, and rejects
-// certificates whose structure is abusive. It is defensive only: it inspects a
-// certificate you already received and decides whether to keep going.
+// Inspect reads only each element's type and length and skips over the rest,
+// so it doesn't allocate per name. It only protects a server when it runs
+// before anything parses the certificate. The README and the examples show
+// where that's possible. It is defensive only: it looks at a certificate you
+// already received and decides whether to keep going.
 package certguard
 
 import (
@@ -54,11 +56,11 @@ var (
 	ErrTooManySANs = errors.New("certguard: too many SubjectAltName entries")
 )
 
-// Inspect screens one raw DER certificate cheaply. It returns nil if the
-// certificate is within limits, or a sentinel error (ErrTooLarge /
-// ErrTooManySANs) if it is abusive. It never fully materializes the SAN entries,
-// so a hostile certificate costs O(number of entries) counting, not O(entries)
-// heap objects.
+// Inspect checks one raw DER certificate against limits. It returns nil if the
+// certificate is within limits, or an error matching ErrTooLarge or
+// ErrTooManySANs (check with errors.Is) if it isn't. It counts SAN entries
+// without building them, so its memory use stays small however many entries a
+// certificate has.
 func Inspect(der []byte, limits Limits) error {
 	l := limits.withDefaults()
 	if len(der) > l.MaxCertBytes {
@@ -76,11 +78,11 @@ func Inspect(der []byte, limits Limits) error {
 	return nil
 }
 
-// InspectParsed re-screens an already-parsed certificate against limits. The
-// stdlib has already paid the parse cost by this point, so this is for logging,
-// metrics, and enforcing a policy inside a VerifyPeerCertificate callback — not
-// for saving the allocation. For true pre-parse protection, apply Inspect to the
-// raw client Certificate message at a proxy/terminator ahead of Go's TLS stack.
+// InspectParsed checks a certificate that has already been parsed. Go has
+// already spent the memory by then, so this is for logging, metrics, or
+// rejecting the connection inside a VerifyPeerCertificate callback. It doesn't
+// save the memory. To do that, run Inspect on the raw certificate before
+// anything parses it, for example behind a proxy that handles TLS.
 func InspectParsed(cert *x509.Certificate, limits Limits) error {
 	return Inspect(cert.Raw, limits)
 }

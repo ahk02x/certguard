@@ -175,7 +175,7 @@ func oidBytesEqualSAN(b []byte) bool {
 	return true
 }
 
-// countTLVElements counts elements by walking headers only — zero allocation.
+// countTLVElements counts elements by walking headers only, with no allocation.
 func countTLVElements(b []byte) (int, bool) {
 	count := 0
 	rest := b
